@@ -1,0 +1,19 @@
+# Base Qdrant image
+FROM qdrant/qdrant:v1.13.4
+
+# Install curl for ECS health check and stay as root for Fargate compatibility
+USER root
+RUN apt-get update && apt-get install -y curl && apt-get clean
+
+# Stay as root for ECS Fargate compatibility
+USER qdrant
+
+# Expose required ports
+EXPOSE 6333 6334
+
+# Health check for ECS
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:6333/healthz || exit 1
+
+# Use Qdrant's default entrypoint (it can handle running as root)
+ENTRYPOINT ["./entrypoint.sh"]

@@ -1,0 +1,68 @@
+# 🎭 DOCKER COMPOSE: Orchestrates multiple containers working together
+# Think of this as the "conductor" of your container orchestra
+
+version: '3.8'
+
+services:
+  # 🗄️ QDRANT DATABASE CONTAINER
+  qdrant:
+    build:
+      context: .
+      dockerfile: Dockerfile.qdrant
+    ports:
+      - "6333:6333"  # Map container port 6333 to your computer's port 6333
+      - "6334:6334"  # GRPC port
+    volumes:
+      - qdrant_data:/qdrant/storage  # Persistent storage (survives container restarts)
+    healthcheck:
+      test: ["CMD-SHELL", "/usr/bin/curl -f http://localhost:6333/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"  # Limit log file size to 10MB
+        max-file: "3"    # Keep a maximum of 3 log files
+  # 🚀 TRAVEL ASSISTANT API CONTAINER  
+  travel-assistant:
+    build:	
+      context: .
+      dockerfile: Dockerfile.prod
+    env_file: .env
+    container_name: travel-backend
+    ports:
+      - "8000:8000"  # Map container port 8000 to your computer's port 8000
+    environment:
+      # 🔐 ENVIRONMENT VARIABLES: Pass secrets and config to container
+      - QDRANT_HOST=qdrant  # Container name becomes hostname!
+      - QDRANT_PORT=6333
+      - OPENAI_API_KEY=${OPENAI_API_KEY}  # Reads from your .env file
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+    depends_on:
+      qdrant:
+        condition: service_healthy  # Wait for Qdrant to be ready before starting
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"  # Limit log file size to 10MB
+        max-file: "3"    # Keep a maximum of 3 log files
+
+# 💾 PERSISTENT VOLUMES: Data that survives container deletion
+volumes:
+  qdrant_data:
+    driver: local
+
+# 🌐 NETWORKING: Containers can talk to each other by name
+networks:
+  default:
+    driver: bridge
