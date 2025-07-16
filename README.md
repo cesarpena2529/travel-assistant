@@ -206,7 +206,8 @@ $ docker-compose up --build
 
 ## 📀 Architecture Diagram
 
-> Coming soon: full EC2 + Docker + TLS + Nginx deployment diagram
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/2ec11671-5634-4c46-99c8-0d414ef50ea6" />
+
 
 ---
 
